@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+aioredis = "*"
+
+[dev-packages]
+pytest = "*"
+pytest-asgi-server = "*"
+async-asgi-testclient = "*"
+
+[requires]
+python_version = "3.8"
