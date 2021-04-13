@@ -33,6 +33,7 @@ async def test_sse_events_work_with_limit():
                 print("received", line)
                 if i.startswith(b"event:"):
                     assert f"payload{line}" in i.decode("utf8")
+            resp.close()
 
         print("teard down client")
 
@@ -66,6 +67,7 @@ async def test_sse_events_work():
                     assert f"payload{line}" in i.decode("utf8")
                 if line == 3:
                     break
+            resp.close()
 
         print("teard down client")
 

@@ -51,6 +51,7 @@ class SSEEndpoint:
                         print("hitting limit")
                         raise LimitReached("returned enough events")
         except (asyncio.CancelledError, LimitReached):
+            print("closing redis")
             redis.close()
             await send({
                 'type': 'http.response.body',
@@ -106,6 +107,9 @@ class SSEEndpoint:
 
             print("cancelling sender")
             looper_task.cancel()
-            await looper_task
+            try:
+                await looper_task
+            except asyncio.CancelledError:
+                print("cancelled sender")
         else:
             await self.app(scope, receive, send)
