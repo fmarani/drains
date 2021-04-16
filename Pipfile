@@ -8,8 +8,8 @@ aioredis = "*"
 
 [dev-packages]
 pytest = "*"
-pytest-asgi-server = "*"
-async-asgi-testclient = "*"
+uvicorn = "*"
+httpx = "*"
 
 [requires]
 python_version = "3.8"

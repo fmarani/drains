@@ -1,6 +1,10 @@
 import aioredis
 import asyncio
 from urllib.parse import parse_qs
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class LimitReached(Exception):
@@ -16,12 +20,12 @@ class SSEEndpoint:
         return await aioredis.create_redis('redis://localhost/0')
 
     async def redis_loop(self, channel_name, stream_from, limit_events, send):
-        print("creating redis listener")
+        logger.debug("creating redis listener")
         redis = await self.create_redis_conn()
 
         try:
             if stream_from:
-                print(stream_from)
+                logger.debug("streaming from %s", stream_from)
                 results = await redis.xrange(channel_name, start=stream_from, stop=b"+")
                 for result in results:
                     stream_id, msg = result
@@ -32,26 +36,25 @@ class SSEEndpoint:
                         'body': b"event: " + stream_id + b"|" + msg[b'message'] + b"\r\n",
                         'more_body': True
                     })
-            print(f"awaiting items from {channel_name}")
+            logger.debug("awaiting items from %s", channel_name)
             c = 0
-            while results := await redis.xread([channel_name]):
-                print(f"got results from {channel_name}")
+            while results := await redis.xread([channel_name], timeout=1000):
+                logger.debug("xread returned from %s", channel_name)
                 for result in results:
                     c += 1
                     stream_name, stream_id, msg = result
                     msg = dict(msg)
-                    print(stream_id)
-                    print(msg)
+                    logger.debug("send called with %s, %s", stream_id, msg)
                     await send({
                         'type': 'http.response.body',
                         'body': b"event: " + stream_id + b"|" + msg[b'message'] + b"\r\n",
                         'more_body': True
                     })
                     if limit_events and c >= limit_events:
-                        print("hitting limit")
+                        logger.debug("hitting limit")
                         raise LimitReached("returned enough events")
         except (asyncio.CancelledError, LimitReached):
-            print("closing redis")
+            logger.debug("closing redis")
             redis.close()
             await send({
                 'type': 'http.response.body',
@@ -83,9 +86,6 @@ class SSEEndpoint:
                     [b'content-type', b'text/event-stream'],
                 ]
             })
-            print("sending headers")
-
-            print("creating sender")
 
             looper = self.redis_loop(channel_name, stream_from, limit_events, send)
             looper_task = asyncio.create_task(looper)
@@ -95,21 +95,20 @@ class SSEEndpoint:
                     done, still = await asyncio.wait([receive()])
                     for d in done:
                         event = await d
-                        print("event", event)
                         if event['type'] == "http.disconnect":
-                            print("client disconnecting")
+                            logger.debug("client disconnected")
                             raise IOError
                     await asyncio.sleep(0.5)
             except IOError:
                 pass
             except asyncio.CancelledError:
-                print("wait cancelled")
+                pass
 
-            print("cancelling sender")
+            logger.debug("cancelling redis looper")
             looper_task.cancel()
             try:
                 await looper_task
             except asyncio.CancelledError:
-                print("cancelled sender")
+                logger.debug("cancelled redis looper")
         else:
             await self.app(scope, receive, send)
