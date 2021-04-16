@@ -6,20 +6,21 @@ import asyncio
 
 
 def test_server_is_alive():
-    r = httpx.get('http://localhost:8000/')
+    r = httpx.get("http://localhost:8000/")
     assert r.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_sse_events_work_with_limit():
     channel_name = "limited"
+
     async def emitter():
         await send_event_async(channel_name, "payload1")
         await send_event_async(channel_name, "payload2")
         await send_event_async(channel_name, "payload3")
 
     async def receiver():
-        async with httpx.AsyncClient(base_url='http://localhost:8000') as client:
+        async with httpx.AsyncClient(base_url="http://localhost:8000") as client:
             req = client.build_request("GET", f"/sse/{channel_name}/?limit=3")
             resp = await client.send(req, stream=True)
             assert resp.status_code == 200
@@ -40,13 +41,14 @@ async def test_sse_events_work_with_limit():
 @pytest.mark.asyncio
 async def test_sse_events_work():
     channel_name = "unlimited"
+
     async def emitter():
         await send_event_async(channel_name, "payload1")
         await send_event_async(channel_name, "payload2")
         await send_event_async(channel_name, "payload3")
 
     async def receiver():
-        async with httpx.AsyncClient(base_url='http://localhost:8000') as client:
+        async with httpx.AsyncClient(base_url="http://localhost:8000") as client:
             req = client.build_request("GET", f"/sse/{channel_name}/")
             resp = await client.send(req, stream=True)
             assert resp.status_code == 200

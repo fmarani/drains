@@ -17,7 +17,7 @@ class SSEEndpoint:
         self.app = app
 
     async def create_redis_conn(self):
-        return await aioredis.create_redis('redis://localhost/0')
+        return await aioredis.create_redis("redis://localhost/0")
 
     async def redis_loop(self, channel_name, stream_from, limit_events, send):
         logger.debug("creating redis listener")
@@ -31,11 +31,17 @@ class SSEEndpoint:
                     stream_id, msg = result
                     msg = dict(msg)
                     print(stream_id, msg)
-                    await send({
-                        'type': 'http.response.body',
-                        'body': b"event: " + stream_id + b"|" + msg[b'message'] + b"\r\n",
-                        'more_body': True
-                    })
+                    await send(
+                        {
+                            "type": "http.response.body",
+                            "body": b"event: "
+                            + stream_id
+                            + b"|"
+                            + msg[b"message"]
+                            + b"\r\n",
+                            "more_body": True,
+                        }
+                    )
             logger.debug("awaiting items from %s", channel_name)
             c = 0
             while results := await redis.xread([channel_name], timeout=1000):
@@ -45,47 +51,50 @@ class SSEEndpoint:
                     stream_name, stream_id, msg = result
                     msg = dict(msg)
                     logger.debug("send called with %s, %s", stream_id, msg)
-                    await send({
-                        'type': 'http.response.body',
-                        'body': b"event: " + stream_id + b"|" + msg[b'message'] + b"\r\n",
-                        'more_body': True
-                    })
+                    await send(
+                        {
+                            "type": "http.response.body",
+                            "body": b"event: "
+                            + stream_id
+                            + b"|"
+                            + msg[b"message"]
+                            + b"\r\n",
+                            "more_body": True,
+                        }
+                    )
                     if limit_events and c >= limit_events:
                         logger.debug("hitting limit")
                         raise LimitReached("returned enough events")
         except (asyncio.CancelledError, LimitReached):
             logger.debug("closing redis")
             redis.close()
-            await send({
-                'type': 'http.response.body',
-                'body': b'',
-            })
+            await send({"type": "http.response.body", "body": b""})
 
     async def __call__(self, scope, receive, send):
-        if scope['type'] != 'http':
+        if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
-        if scope['method'] == "GET" and scope['path'].startswith(self.url_prefix):
-            channel_name = scope['path'][len(self.url_prefix):].strip("/")
+        if scope["method"] == "GET" and scope["path"].startswith(self.url_prefix):
+            channel_name = scope["path"][len(self.url_prefix) :].strip("/")
             if channel_name == "":
                 raise Exception("channel name must be not empty")
 
-            query_string = parse_qs(scope['query_string'])
+            query_string = parse_qs(scope["query_string"])
             stream_from = limit_events = None
 
-            if query_string.get(b'from'):
-                stream_from = query_string.get(b'from')[0]
-            if query_string.get(b'limit'):
-                limit_events = int(query_string.get(b'limit')[0])
+            if query_string.get(b"from"):
+                stream_from = query_string.get(b"from")[0]
+            if query_string.get(b"limit"):
+                limit_events = int(query_string.get(b"limit")[0])
 
-            await send({
-                'type': 'http.response.start',
-                'status': 200,
-                'headers': [
-                    [b'content-type', b'text/event-stream'],
-                ]
-            })
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [[b"content-type", b"text/event-stream"]],
+                }
+            )
 
             looper = self.redis_loop(channel_name, stream_from, limit_events, send)
             looper_task = asyncio.create_task(looper)
@@ -95,7 +104,7 @@ class SSEEndpoint:
                     done, still = await asyncio.wait([receive()])
                     for d in done:
                         event = await d
-                        if event['type'] == "http.disconnect":
+                        if event["type"] == "http.disconnect":
                             logger.debug("client disconnected")
                             raise IOError
                     await asyncio.sleep(0.5)

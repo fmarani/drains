@@ -3,9 +3,9 @@ import aioredis
 
 
 async def send_event_async(stream, msg):
-    fields = {b'message': msg}
+    fields = {b"message": msg}
 
-    redis = await aioredis.create_redis('redis://localhost')
+    redis = await aioredis.create_redis("redis://localhost")
     result = await redis.xadd(stream, fields)
 
     redis.close()
