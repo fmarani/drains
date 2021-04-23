@@ -8,4 +8,6 @@ author = "Federico Marani"
 author-email = "me@federicomarani.com"
 home-page = "https://github.com/fmarani/drains"
 classifiers = [ "License :: OSI Approved :: MIT License",]
-
+requires = [
+  "aioredis==1.3.1"
+]
