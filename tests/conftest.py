@@ -1,10 +1,12 @@
+import contextlib
+import threading
+import time
+
 import pytest
 from uvicorn.config import Config
 from uvicorn.main import Server as UvicornServer
+
 from .asgi_app import app
-import threading
-import time
-import contextlib
 
 
 class Server(UvicornServer):

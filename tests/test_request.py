@@ -1,8 +1,10 @@
-import pytest
-import httpx
-import time
-from drains import send_event_async
 import asyncio
+import time
+
+import httpx
+import pytest
+
+from drains import send_event_async
 
 
 def test_server_is_alive():

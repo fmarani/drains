@@ -1,8 +1,8 @@
-import aioredis
 import asyncio
-from urllib.parse import parse_qs
 import logging
+from urllib.parse import parse_qs
 
+import aioredis
 
 logger = logging.getLogger(__name__)
 

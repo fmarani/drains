@@ -2,6 +2,7 @@
 Drains is an ASGI middleware for Server sent events backed by Redis streams
 """
 import asyncio
+
 import aioredis
 
 __version__ = "0.1.0"
