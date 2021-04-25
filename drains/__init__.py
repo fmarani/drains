@@ -5,7 +5,7 @@ import asyncio
 
 import aioredis
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 
 async def send_event_async(stream, msg):
