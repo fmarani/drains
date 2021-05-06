@@ -68,3 +68,33 @@ async def test_sse_events_work():
     await asyncio.sleep(0.3)
     await emitter()
     await receiver_task
+
+
+@pytest.mark.asyncio
+async def test_slow_sse_events_work():
+    channel_name = "unlimited"
+
+    async def emitter():
+        await send_event_async(channel_name, "payload1")
+        await send_event_async(channel_name, "payload2")
+        await send_event_async(channel_name, "payload3")
+
+    async def receiver():
+        async with httpx.AsyncClient(base_url="http://localhost:8000") as client:
+            req = client.build_request("GET", f"/sse/{channel_name}/")
+            resp = await client.send(req, stream=True)
+            assert resp.status_code == 200
+
+            line = 0
+            async for i in resp.aiter_bytes():
+                line += 1
+                if i.startswith(b"event:"):
+                    assert f"payload{line}" in i.decode("utf8")
+                if line == 3:
+                    break
+            await resp.aclose()
+
+    receiver_task = asyncio.create_task(receiver())
+    await asyncio.sleep(5)
+    await emitter()
+    await receiver_task

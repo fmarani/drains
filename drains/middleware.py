@@ -30,7 +30,6 @@ class SSEEndpoint:
                 for result in results:
                     stream_id, msg = result
                     msg = dict(msg)
-                    print(stream_id, msg)
                     await send(
                         {
                             "type": "http.response.body",
@@ -44,7 +43,8 @@ class SSEEndpoint:
                     )
             logger.debug("awaiting items from %s", channel_name)
             c = 0
-            while results := await redis.xread([channel_name], timeout=1000):
+            while True:
+                results = await redis.xread([channel_name], timeout=1000)
                 logger.debug("xread returned from %s", channel_name)
                 for result in results:
                     c += 1
