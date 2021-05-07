@@ -33,11 +33,11 @@ class SSEEndpoint:
                     await send(
                         {
                             "type": "http.response.body",
-                            "body": b"event: "
+                            "body": b"data: "
                             + stream_id
                             + b"|"
                             + msg[b"message"]
-                            + b"\r\n",
+                            + b"\r\n\r\n",
                             "more_body": True,
                         }
                     )
@@ -54,11 +54,11 @@ class SSEEndpoint:
                     await send(
                         {
                             "type": "http.response.body",
-                            "body": b"event: "
+                            "body": b"data: "
                             + stream_id
                             + b"|"
                             + msg[b"message"]
-                            + b"\r\n",
+                            + b"\r\n\r\n",
                             "more_body": True,
                         }
                     )

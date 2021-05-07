@@ -30,7 +30,7 @@ async def test_sse_events_work_with_limit():
             line = 0
             async for i in resp.aiter_bytes():
                 line += 1
-                if i.startswith(b"event:"):
+                if i.startswith(b"data:"):
                     assert f"payload{line}" in i.decode("utf8")
             await resp.aclose()
 
@@ -58,7 +58,7 @@ async def test_sse_events_work():
             line = 0
             async for i in resp.aiter_bytes():
                 line += 1
-                if i.startswith(b"event:"):
+                if i.startswith(b"data:"):
                     assert f"payload{line}" in i.decode("utf8")
                 if line == 3:
                     break
@@ -88,7 +88,7 @@ async def test_slow_sse_events_work():
             line = 0
             async for i in resp.aiter_bytes():
                 line += 1
-                if i.startswith(b"event:"):
+                if i.startswith(b"data:"):
                     assert f"payload{line}" in i.decode("utf8")
                 if line == 3:
                     break
