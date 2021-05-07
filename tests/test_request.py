@@ -1,10 +1,18 @@
 import asyncio
+import aioredis
 import time
 
 import httpx
 import pytest
 
 from drains import send_event_async
+
+
+async def delete_stream(stream):
+    redis = await aioredis.create_redis("redis://localhost")
+    await redis.delete(stream)
+    redis.close()
+    await redis.wait_closed()
 
 
 def test_server_is_alive():
@@ -34,6 +42,7 @@ async def test_sse_events_work_with_limit():
                     assert f"payload{line}" in i.decode("utf8")
             await resp.aclose()
 
+    await delete_stream(channel_name)
     receiver_task = asyncio.create_task(receiver())
     await asyncio.sleep(0.3)
     await emitter()
@@ -64,6 +73,7 @@ async def test_sse_events_work():
                     break
             await resp.aclose()
 
+    await delete_stream(channel_name)
     receiver_task = asyncio.create_task(receiver())
     await asyncio.sleep(0.3)
     await emitter()
@@ -72,7 +82,7 @@ async def test_sse_events_work():
 
 @pytest.mark.asyncio
 async def test_slow_sse_events_work():
-    channel_name = "unlimited"
+    channel_name = "unlimited2"
 
     async def emitter():
         await send_event_async(channel_name, "payload1")
@@ -94,6 +104,7 @@ async def test_slow_sse_events_work():
                     break
             await resp.aclose()
 
+    await delete_stream(channel_name)
     receiver_task = asyncio.create_task(receiver())
     await asyncio.sleep(5)
     await emitter()
