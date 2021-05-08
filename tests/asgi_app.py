@@ -22,4 +22,4 @@ async def inner_app(scope, receive, send):
         await send({"type": "http.response.body", "body": b"Hello, world!"})
 
 
-app = SSEEndpoint("/sse/", inner_app)
+app = SSEEndpoint(inner_app, url_prefix="/sse/")

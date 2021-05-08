@@ -12,9 +12,9 @@ class LimitReached(Exception):
 
 
 class SSEEndpoint:
-    def __init__(self, url_prefix, app):
-        self.url_prefix = url_prefix
+    def __init__(self, app, *, url_prefix):
         self.app = app
+        self.url_prefix = url_prefix
 
     async def create_redis_conn(self):
         return await aioredis.create_redis("redis://localhost/0")
