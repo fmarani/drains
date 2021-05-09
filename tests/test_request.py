@@ -5,7 +5,7 @@ import time
 import httpx
 import pytest
 
-from drains import send_event_async
+from drains import ssend_async
 
 
 async def delete_stream(stream):
@@ -25,9 +25,9 @@ async def test_sse_events_work_with_limit():
     channel_name = "limited"
 
     async def emitter():
-        await send_event_async(channel_name, "payload1")
-        await send_event_async(channel_name, "payload2")
-        await send_event_async(channel_name, "payload3")
+        await ssend_async(channel_name, event="notification", data="payload1")
+        await ssend_async(channel_name, event="notification", data="payload2")
+        await ssend_async(channel_name, event="notification", data="payload3")
 
     async def receiver():
         async with httpx.AsyncClient(base_url="http://localhost:8000") as client:
@@ -54,9 +54,9 @@ async def test_sse_events_work():
     channel_name = "unlimited"
 
     async def emitter():
-        await send_event_async(channel_name, "payload1")
-        await send_event_async(channel_name, "payload2")
-        await send_event_async(channel_name, "payload3")
+        await ssend_async(channel_name, event="notification", data="payload1")
+        await ssend_async(channel_name, event="notification", data="payload2")
+        await ssend_async(channel_name, event="notification", data="payload3")
 
     async def receiver():
         async with httpx.AsyncClient(base_url="http://localhost:8000") as client:
@@ -85,9 +85,9 @@ async def test_slow_sse_events_work():
     channel_name = "unlimited2"
 
     async def emitter():
-        await send_event_async(channel_name, "payload1")
-        await send_event_async(channel_name, "payload2")
-        await send_event_async(channel_name, "payload3")
+        await ssend_async(channel_name, event="notification", data="payload1")
+        await ssend_async(channel_name, event="notification", data="payload2")
+        await ssend_async(channel_name, event="notification", data="payload3")
 
     async def receiver():
         async with httpx.AsyncClient(base_url="http://localhost:8000") as client:
@@ -107,5 +107,31 @@ async def test_slow_sse_events_work():
     await delete_stream(channel_name)
     receiver_task = asyncio.create_task(receiver())
     await asyncio.sleep(5)
+    await emitter()
+    await receiver_task
+
+
+@pytest.mark.asyncio
+async def test_without_data_works():
+    channel_name = "unlimited3"
+
+    async def emitter():
+        await ssend_async(channel_name, event="notification")
+
+    async def receiver():
+        async with httpx.AsyncClient(base_url="http://localhost:8000") as client:
+            req = client.build_request("GET", f"/sse/{channel_name}/")
+            resp = await client.send(req, stream=True)
+            assert resp.status_code == 200
+
+            async for i in resp.aiter_bytes():
+                assert i.startswith(b"event: notification\r\n")
+                break
+
+            await resp.aclose()
+
+    await delete_stream(channel_name)
+    receiver_task = asyncio.create_task(receiver())
+    await asyncio.sleep(0.3)
     await emitter()
     await receiver_task

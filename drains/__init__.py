@@ -11,9 +11,12 @@ __version__ = "0.1.2"
 logger = logging.getLogger(__name__)
 
 
-async def send_event_async(stream, msg):
+async def ssend_async(stream, *, event, data=None):
     logger.info("sending event to %s", stream)
-    fields = {b"message": msg}
+    if data:
+        fields = {b"event": event, b"data": data}
+    else:
+        fields = {b"event": event}
 
     redis = await aioredis.create_redis("redis://localhost")
     result = await redis.xadd(stream, fields)
@@ -22,6 +25,6 @@ async def send_event_async(stream, msg):
     await redis.wait_closed()
 
 
-def send_event(stream, msg):
+def ssend(stream, *, event, data=None):
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(send_event_async(stream, msg))
+    loop.run_until_complete(ssend_async(stream, event=event, data=data))

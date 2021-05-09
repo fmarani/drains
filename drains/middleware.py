@@ -19,6 +19,19 @@ class SSEEndpoint:
     async def create_redis_conn(self):
         return await aioredis.create_redis("redis://localhost/0")
 
+    async def compose_and_send_event(self, send, stream_id, redis_value):
+        logger.debug("send called with %s, %s", stream_id, redis_value)
+        msg = dict(redis_value)
+        body = b"event: %s\r\n" % redis_value[b"event"]
+        if b"data" in redis_value:
+            body += b"data: %s|%s\r\n" % (stream_id, redis_value[b"data"])
+        else:
+            body += b"data: %s\r\n" % stream_id
+
+        await send(
+            {"type": "http.response.body", "body": body + b"\r\n", "more_body": True}
+        )
+
     async def redis_loop(self, channel_name, stream_from, limit_events, send):
         logger.debug("creating redis listener")
         redis = await self.create_redis_conn()
@@ -29,39 +42,16 @@ class SSEEndpoint:
                 results = await redis.xrange(channel_name, start=stream_from, stop=b"+")
                 for result in results:
                     stream_id, msg = result
-                    msg = dict(msg)
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": b"data: "
-                            + stream_id
-                            + b"|"
-                            + msg[b"message"]
-                            + b"\r\n\r\n",
-                            "more_body": True,
-                        }
-                    )
+                    await self.compose_and_send_event(send, stream_id, msg)
             logger.debug("awaiting items from %s", channel_name)
             c = 0
             while True:
                 results = await redis.xread([channel_name], timeout=1000)
-                logger.debug("xread returned from %s", channel_name)
+                logger.debug("xread returned from %s with %s", channel_name, results)
                 for result in results:
                     c += 1
                     stream_name, stream_id, msg = result
-                    msg = dict(msg)
-                    logger.debug("send called with %s, %s", stream_id, msg)
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": b"data: "
-                            + stream_id
-                            + b"|"
-                            + msg[b"message"]
-                            + b"\r\n\r\n",
-                            "more_body": True,
-                        }
-                    )
+                    await self.compose_and_send_event(send, stream_id, msg)
                     if limit_events and c >= limit_events:
                         logger.debug("hitting limit")
                         raise LimitReached("returned enough events")
