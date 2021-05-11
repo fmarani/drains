@@ -22,15 +22,11 @@ class SSEEndpoint:
     async def compose_and_send_event(self, send, stream_id, redis_value):
         logger.debug("send called with %s, %s", stream_id, redis_value)
         msg = dict(redis_value)
-        body = b"event: %s\r\n" % redis_value[b"event"]
+        body = b"id: %s\r\n" % stream_id
+        body += b"event: %s\r\n" % redis_value[b"event"]
 
-        data_pieces = []
-        if b"include_id" in redis_value:
-            data_pieces.append(stream_id)
         if b"data" in redis_value:
-            data_pieces.append(redis_value[b"data"])
-
-        body += b"data: %s\r\n" % b"|".join(data_pieces)
+            body += b"data: %s\r\n" % redis_value[b"data"]
 
         await send(
             {"type": "http.response.body", "body": body + b"\r\n", "more_body": True}

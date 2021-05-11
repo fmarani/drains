@@ -11,13 +11,11 @@ __version__ = "0.1.2"
 logger = logging.getLogger(__name__)
 
 
-async def ssend_async(stream, *, event, data=None, include_id=None):
+async def ssend_async(stream, *, event, data=None):
     logger.info("sending event to %s", stream)
     fields = {b"event": event}
     if data:
         fields[b"data"] = data
-    if include_id:
-        fields[b"include_id"] = True
 
     redis = await aioredis.create_redis("redis://localhost")
     result = await redis.xadd(stream, fields)
