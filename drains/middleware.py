@@ -27,6 +27,8 @@ class SSEEndpoint:
 
         if b"data" in redis_value:
             body += b"data: %s\r\n" % redis_value[b"data"]
+        else:
+            body += b"data: \r\n"
 
         await send(
             {"type": "http.response.body", "body": body + b"\r\n", "more_body": True}

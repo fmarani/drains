@@ -125,7 +125,10 @@ async def test_without_data_works():
             assert resp.status_code == 200
 
             async for i in resp.aiter_bytes():
-                assert b"event: notification\r\n" in i
+                lines = i.splitlines()
+                assert lines[0].startswith(b"id:")
+                assert b"event: notification" == lines[1]
+                assert b"data: " == lines[2]
                 break
 
             await resp.aclose()
